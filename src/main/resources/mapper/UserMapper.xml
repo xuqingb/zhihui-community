@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+| `namespace`       绑定 XML 和 Mapper 接口，决定了这些 SQL 属于哪个 Mapper 接口
+  namespace = Mapper 接口的全限定名，用来绑定 Java 接口 和 XML SQL 的。
+  MyBatis 是怎么用它的？
+  MyBatis 启动时会扫描 Mapper XML
+  namespace 对应一个 Mapper 接口
+  XML 里的每个 <select | insert | update | delete> ，必须和接口里的 方法名一一对应
+
+| `resultMap`       数据库字段 → Java 对象属性 的映射规则，决定了：SQL 查出来的每一行，怎么变成一个 Java 对象
+  用于解决：
+  字段名 ≠ 属性名
+  类型转换
+  如果直接用 resultType：
+    MyBatis 默认靠字段名=属性名
+    下划线 → 驼峰要靠全局配置
+    可控性不强
+    复杂对象映射
+
+| `parameterType`   告诉 MyBatis SQL 参数的类型，这个 SQL 接收的参数是什么类型
+                    可以不写 parameterType，因为 MyBatis 能从方法签名里“自动推断”参数类型。
+
+| `SELECT EXISTS`   “高性能的是否存在判断” 比 COUNT 更适合做校验
+    COUNT(*) 会扫描所有符合条件的行，数据量大时 性能差
+    EXISTS 找到第一条就返回，不关心数量，索引命中非常快
+-->
+<mapper namespace="com.tongji.user.mapper.UserMapper">
+    <resultMap id="UserResultMap" type="com.tongji.user.domain.User">
+        <id column="id" property="id"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="password_hash" property="passwordHash"/>
+        <result column="nickname" property="nickname"/>
+        <result column="avatar" property="avatar"/>
+        <result column="bio" property="bio"/>
+        <result column="zg_id" property="zgId"/>
+        <result column="gender" property="gender"/>
+        <result column="birthday" property="birthday"/>
+        <result column="school" property="school"/>
+        <result column="tags_json" property="tagsJson"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findByPhone" parameterType="string" resultMap="UserResultMap">
+        SELECT *
+        FROM users
+        WHERE phone = #{phone}
+        LIMIT 1
+    </select>
+
+    <select id="findByEmail" parameterType="string" resultMap="UserResultMap">
+        SELECT *
+        FROM users
+        WHERE email = #{email}
+        LIMIT 1
+    </select>
+
+    <!--  MyBatis 内置了 BooleanTypeHandler 来自动进行类型转换： 存在时：1 (TRUE) 不存在时：0 (FALSE)  -->
+    <select id="existsByPhone" parameterType="string" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM users
+            WHERE phone = #{phone}
+        )
+    </select>
+
+    <select id="existsByEmail" parameterType="string" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM users
+            WHERE email = #{email}
+        )
+    </select>
+
+    <insert id="insert" parameterType="com.tongji.user.domain.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (
+            phone,
+            email,
+            password_hash,
+            nickname,
+            avatar,
+            bio,
+            zg_id,
+            gender,
+            birthday,
+            school,
+            tags_json,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{phone},
+            #{email},
+            #{passwordHash},
+            #{nickname},
+            #{avatar},
+            #{bio},
+            #{zgId},
+            #{gender},
+            #{birthday},
+            #{school},
+            #{tagsJson},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <select id="findById" parameterType="long" resultMap="UserResultMap">
+        SELECT *
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <update id="updatePassword">
+        UPDATE users
+        SET password_hash = #{passwordHash},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateProfile" parameterType="com.tongji.user.domain.User">
+        UPDATE users
+        <set>
+            <if test="nickname != null">nickname = #{nickname},</if>
+            <if test="bio != null">bio = #{bio},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="birthday != null">birthday = #{birthday},</if>
+            <if test="zgId != null">zg_id = #{zgId},</if>
+            <if test="school != null">school = #{school},</if>
+            <if test="avatar != null">avatar = #{avatar},</if>
+            <if test="tagsJson != null">tags_json = #{tagsJson},</if>
+            updated_at = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="existsByZgIdExceptId" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM users
+            WHERE zg_id = #{zgId}
+              AND id != #{excludeId}
+        )
+    </select>
+
+    <select id="listByIds" resultMap="UserResultMap">
+        SELECT *
+        FROM users
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

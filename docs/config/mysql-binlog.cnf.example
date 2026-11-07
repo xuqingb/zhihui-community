@@ -1,0 +1,7 @@
+# Merge into the existing MySQL server configuration; restart MySQL afterward.
+# Configure this only when you need the Canal / Outbox event chain.
+[mysqld]
+server-id=1
+log-bin=mysql-bin
+binlog-format=ROW
+binlog-row-image=FULL

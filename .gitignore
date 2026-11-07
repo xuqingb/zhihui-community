@@ -1,0 +1,38 @@
+# Build output and installed dependencies
+target/
+build/
+dist/
+node_modules/
+
+# IDE and OS metadata
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+.DS_Store
+Thumbs.db
+
+# Assistant history, browser artifacts and local caches
+.specstory/
+.playwright-mcp/
+.npm-cache/
+.cursorindexingignore
+qa/
+.runtime/
+*.log
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+/config/application-local.yml
+/config/keys/
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore

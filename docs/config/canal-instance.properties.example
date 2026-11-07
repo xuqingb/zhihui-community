@@ -1,0 +1,10 @@
+# Merge into Canal Server's conf/example/instance.properties.
+# Keep the distribution's other properties. Replace REPLACE_ME manually.
+# This user connects Canal SERVER to MYSQL; it is not the Java TCP client user.
+canal.instance.master.address=127.0.0.1:3306
+canal.instance.dbUsername=canal_reader
+canal.instance.dbPassword=REPLACE_ME
+canal.instance.connectionCharset=UTF-8
+canal.instance.filter.regex=zhiguang\\.outbox
+# Give each Canal replica a unique ID, distinct from MySQL server-id.
+canal.instance.mysql.slaveId=1001

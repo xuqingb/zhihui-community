@@ -1,0 +1,7 @@
+import { createApp } from 'vue'
+import '@fontsource-variable/dm-sans'
+import './style.css'
+import './community.css'
+import App from './App.vue'
+
+createApp(App).mount('#app')

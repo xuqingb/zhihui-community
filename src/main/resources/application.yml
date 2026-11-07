@@ -1,0 +1,163 @@
+spring:
+  application:
+    name: zhihui
+  datasource:
+    url: jdbc:mysql://localhost:3306/zhiguang?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20             # 连接池最大连接数
+      minimum-idle: 5                   # 最小空闲连接
+      idle-timeout: 600000              # 10 分钟：空闲多久回收
+      max-lifetime: 1700000             # 约 28 分钟
+      keepalive-time: 300000            # 5 分钟发一次“保活”
+      connection-timeout: 30000         # 30 秒拿不到连接就报错
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD:}
+  kafka:
+    # Kafka 集群地址，多个地址用逗号隔开
+    bootstrap-servers: localhost:9092
+    template:
+      # 生产者默认发送的 Topic，如果不显式指定 Topic 则发送到这里
+      default-topic: counter-events
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # 确认机制：all 表示消息必须写入所有副本(ISR)才算成功，安全性最高
+      acks: all
+      # 消息发送失败后的重试次数
+      retries: 3
+      # 消息发送延迟：在发送前等待 10ms，尽可能攒批发送以提高吞吐量
+      linger: 10ms
+      properties:
+        # 开启幂等性：确保即便重试也不会导致消息重复发送
+        enable.idempotence: true
+        # 单个连接在阻塞前发送的未确认请求数：1 保证了严格的消息顺序性
+        max.in.flight.requests.per.connection: 1
+    consumer:
+      group-id: counter-agg
+      # 消息 Key 的序列化方式（将 String 转为字节数组）
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # 消息 Value 的序列化方式
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # 偏移量重置策略：latest 表示从最新的消息开始消费；earliest 表示从最早的消息开始
+      auto-offset-reset: latest
+      # 关闭自动提交：交由代码手动控制 Offset 提交，避免消息丢失或重复
+      enable-auto-commit: false
+    listener:
+      # 监听类型：single 表示单条消费；batch 表示批量消费
+      type: single
+      # 确认模式：manual 表示由开发者在代码中调用 acknowledgment.acknowledge() 手动确认
+      ack-mode: manual
+  ai:
+    deepseek:
+      api-key: ${DP_API_KEY}
+      base-url: https://api.deepseek.com
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 0.8
+    openai:
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      api-key: ${API_KEY}
+      embedding:
+        options:
+          model: text-embedding-v4 # 向量模型
+          dimensions: 1536
+    vectorstore:
+      elasticsearch:
+        initialize-schema: true
+        index-name: zhiguang-ai-index
+        dimensions: 1536 # 一定要和上面的 dimensions 一致，不然会报错
+  elasticsearch:
+    uris: http://localhost:9200
+
+canal:
+  enabled: true
+  host: localhost
+  port: 11111
+  destination: example
+  username: ${CANAL_USERNAME:}
+  password: ${CANAL_PASSWORD:}
+  filter: zhiguang\.outbox
+  batchSize: 1000
+  intervalMs: 1000
+
+counter:
+  rebuild:
+    enabled: false
+    lock:
+      ttl-ms: 5000
+      watchdog-ms: 30000
+    rate:
+      permits: 3
+      window-seconds: 10
+    backoff:
+      base-ms: 500
+      max-ms: 30000
+
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+auth:
+  jwt:
+    issuer: zhiguang
+    key-id: zhiguang-key
+    private-key: ${JWT_PRIVATE_KEY_PATH:file:./config/keys/private.pem}
+    public-key: ${JWT_PUBLIC_KEY_PATH:file:./config/keys/public.pem}
+    access-token-ttl: PT15M
+    refresh-token-ttl: P7D
+    # ISO 8601 持续时间格式，是Java中表示时间段的国际标准格式
+    # 标准化 - 国际标准，避免歧义
+    # 可读性好 - 比纯秒数（900秒）更易理解
+    # Spring自动转换 - Spring Boot自动转换为 java.time.Duration
+    # 精确 - 明确区分分钟（M）和月份（M，前面没有T）
+  verification:
+    code-length: 6
+    ttl: PT5M
+    max-attempts: 5
+    send-interval: PT60S
+    daily-limit: 10
+  password:
+    bcrypt-strength: 12
+    min-length: 8
+
+logging:
+  level:
+    root: INFO
+    '[com.tongji]': DEBUG
+
+oss:
+  endpoint: ${OSS_ENDPOINT:oss-cn-shenzhen.aliyuncs.com}
+  access-key-id: ${OSS_ACCESS_KEY_ID}
+  access-key-secret: ${OSS_ACCESS_KEY_SECRET}
+  bucket: ${OSS_BUCKET}
+  public-domain: ${OSS_PUBLIC_DOMAIN:} # 选填，自己绑定的自定义域名
+  folder: avatars # 默认上传目录
+
+cache:
+  l2:
+    public-cfg:
+      ttl-seconds: 15
+      max-size: 1000
+    mine-cfg:
+      ttl-seconds: 10
+      max-size: 1000
+  hotkey:
+    window-seconds: 60
+    segment-seconds: 10
+    level-low: 50
+    level-medium: 200
+    level-high: 500
+    extend-low-seconds: 20
+    extend-medium-seconds: 60
+    extend-high-seconds: 120
